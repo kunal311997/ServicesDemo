@@ -7,85 +7,86 @@ import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Log
 import android.widget.Button
-import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.kunal.services.TimerService.MyLocalBinder
-
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var btnForeground: Button
-    private lateinit var btnBackground: Button
-    private lateinit var btnBound: Button
+    private lateinit var btnBackgroundService: Button
     private lateinit var btnStopService: Button
+    private lateinit var btnBoundService: Button
     private lateinit var btnOpenIntent: Button
-    private lateinit var txtServiceType: TextView
     private lateinit var connection: ServiceConnection
-    private lateinit var service: TimerService
-    private val TAG = "MainActivity"
 
-    private val serviceIntent by lazy {
-        Intent(this, TimerService::class.java)
+    private val foregroundService by lazy {
+        Intent(this, TimerForegroundService::class.java)
     }
+
+    private val backgroundService by lazy {
+        Intent(this, TimerBackgroundService::class.java)
+    }
+
+    private val boundService by lazy {
+        Intent(this, TimerBoundService::class.java)
+    }
+
+    lateinit var service: TimerBoundService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        btnForeground = findViewById(R.id.btnForeground)
-        btnBackground = findViewById(R.id.btnBackground)
-        btnBound = findViewById(R.id.btnBound)
-        btnBound = findViewById(R.id.btnBound)
+        btnForeground = findViewById(R.id.btnForegroundService)
+        btnBackgroundService = findViewById(R.id.btnBackgroundService)
+        btnBoundService = findViewById(R.id.btnBoundService)
         btnStopService = findViewById(R.id.btnStopService)
         btnOpenIntent = findViewById(R.id.btnOpenIntent)
-        txtServiceType = findViewById(R.id.txtServiceType)
-        connection = object : ServiceConnection {
-            override fun onServiceDisconnected(componentName: ComponentName) {
-            }
 
-            override fun onServiceConnected(
-                componentName: ComponentName, service: IBinder
-            ) {
-                val binder = service as MyLocalBinder
-                this@MainActivity.service = binder.getService()
-            }
-        }
-        addOnClickListeners()
-    }
-
-    private fun addOnClickListeners() {
         btnForeground.setOnClickListener {
-            Log.e(TAG, "addOnClickListeners: btnForeground")
-            serviceIntent.putExtra("serviceType", "Foreground")
-            ContextCompat.startForegroundService(this, serviceIntent)
-            txtServiceType.text = "Foreground service started"
+            startForegroundService()
         }
-
-        btnBackground.setOnClickListener {
-            Log.e(TAG, "addOnClickListeners: btnBackground")
-            serviceIntent.putExtra("serviceType", "Background")
-            startService(serviceIntent)
-            txtServiceType.text = "Background service started"
+        btnBackgroundService.setOnClickListener {
+            startBackgroundService()
         }
-
-        btnBound.setOnClickListener {
-            Log.e(TAG, "addOnClickListeners: btnBound")
-            bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE);
-            txtServiceType.text = "Bounded service started"
+        btnBoundService.setOnClickListener {
+            startBoundService()
         }
-
         btnStopService.setOnClickListener {
-            Log.e(TAG, "addOnClickListeners: btnStopService")
-            stopService(serviceIntent)
-            txtServiceType.text = "Service stopped"
+            stopForegroundService()
         }
 
         btnOpenIntent.setOnClickListener {
-            val intent = Intent(this, MainActivity2::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, MainActivity2::class.java))
             finish()
         }
+
+        connection = object : ServiceConnection {
+            override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
+                val binder = p1 as TimerBoundService.MyLocalBinder
+                this@MainActivity.service = binder.getService()
+            }
+
+            override fun onServiceDisconnected(p0: ComponentName?) {
+            }
+
+        }
+    }
+
+    private fun startBoundService() {
+        bindService(boundService, connection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun startBackgroundService() {
+        startService(backgroundService)
+    }
+
+    private fun stopForegroundService() {
+        stopService(foregroundService)
+        stopService(backgroundService)
+    }
+
+    private fun startForegroundService() {
+        ContextCompat.startForegroundService(this, foregroundService)
     }
 }
